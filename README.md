@@ -47,3 +47,14 @@ Tutte stanno nel volume 256³ (pezzo più largo 247 mm).
 - Interasse estensioni Speedmax CF non trovato online → va misurato.
 - Funzione asole quadrate posteriori ignota → modellate come passanti cinghia velcro.
 - Interfaccia puck computer generica (2× M3).
+
+## Anteprima e struttura
+- `viewer/` – visualizzatore 3D (three.js) con disegni tecnici lato/alto/sotto e foto del video sovrapposta.
+  In locale: `python3 -m http.server 8777 --directory viewer` → http://localhost:8777
+- `cockpit.py` – modello parametrico (CadQuery), esporta `out/*.step|stl`
+- `drawings.py` – proiezioni con linee nascoste → `viewer/draw/*.json`
+- `render.py` – anteprime PNG in `out/`
+- `video_frames/` – frame del video di riferimento con ombre schiarite
+- `cockpit-studio.html` – studio iniziale da foto (v0.1, superato)
+
+Installazione: `pip install -r requirements.txt`
