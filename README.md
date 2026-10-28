@@ -1,9 +1,12 @@
-# Cockpit triathlon – Canyon Speedmax CF (v0.5)
+# Cockpit triathlon – Canyon Speedmax CF (v0.6)
 
 Ricostruzione parametrica da foto + video a 360°. Quote stimate: **stampare prima `P0_test_clip`**.
 
-Forma v0.5: vasca a barca a cuneo (pareti basse in punta che salgono lineari fino a ~80 mm in coda, svasate 22°, retro aperto), due lobi convessi che partono sui tubi e divergono verso il retro (centro ±35 → ±72 mm, larghi 30 → 56 mm),
-carenature cilindriche delle estensioni visibili nel canale, blocco posteriore largo 72 mm, dorsale a chiglia sotto il fondo (più profonda verso il retro) con le sedi a scatto. Tubi punta piegati di 60°, il tratto dritto entra per 40 mm nel muso.
+Forma v0.6: vasca a cuneo (pareti basse e strette in punta che salgono fino a ~74 mm in coda, retro aperto),
+canale centrale da 46 mm, ai lati due **incavi concavi per gli avambracci** che scendono dal bordino del canale e
+risalgono fino alle pareti, carenature delle estensioni sotto gli incavi, dorsale a chiglia sotto il fondo (fino a
+−37 mm, poi gradino) con le sedi a scatto, blocco posteriore inclinato 25° con braccio borraccia fisso.
+Profilo di pareti e chiglia misurato sui contorni del video (`trace.py` + `compare.py`, scarto ~±3 mm).
 
 ## Prima di stampare
 1. Misura sulla bici l'**interasse delle estensioni** (asse–asse) → `ext_cc` in `cockpit.py` (default 70).
@@ -54,6 +57,8 @@ Tutte stanno nel volume 256³ (pezzo più largo 247 mm).
 - `cockpit.py` – modello parametrico (CadQuery), esporta `out/*.step|stl`
 - `drawings.py` – proiezioni con linee nascoste → `viewer/draw/*.json`
 - `render.py` – anteprime PNG in `out/`
+- `trace.py` – contorni reali dai frame del video → `viewer/draw/trace_*.json`
+- `compare.py` – scarto modello/foto a stazioni lungo la lunghezza
 - `video_frames/` – frame del video di riferimento con ombre schiarite
 - `cockpit-studio.html` – studio iniziale da foto (v0.1, superato)
 

@@ -25,20 +25,23 @@ P = dict(
     L=360.0,             # lunghezza vassoio
     y_shoulder=15.0,     # dove iniziano le pareti
     y_split=180.0,       # giunzione tra le 2 metà
-    # profilo pareti (vista laterale): (y, semi-larghezza bordo, quota bordo da asse estensioni)
-    # basse in punta, salgono quasi lineari fino al retro
-    wall=((15.0, 66.0, 12.0), (150.0, 92.0, 36.0), (260.0, 112.0, 56.0), (360.0, 118.0, 74.0)),
-    flare=22.0,          # svasatura pareti dalla verticale (°)
+    # profilo pareti (y, semi-larghezza bordo, quota bordo da asse estensioni), misurato sui contorni
+    # del video (compare.py): basse e strette in punta, salgono fino al retro
+    wall=((15.0, 50.0, 10.0), (60.0, 70.0, 21.0), (100.0, 81.0, 25.0), (180.0, 97.0, 34.0),
+          (220.0, 105.0, 40.0), (260.0, 112.0, 54.0), (360.0, 118.0, 74.0)),
     z_floor=-6.0,        # faccia inferiore del fondo
     # chiglia sotto il fondo (vista laterale): (y, quota fondo dorsale); si approfondisce fino
     # a ~75% della lunghezza, poi gradino verso una coda meno profonda
-    keel=((0.0, -14.0), (280.0, -30.0), (280.0, -18.0), (360.0, -18.0)),
-    # lobi (vista dall'alto): partono sui tubi e divergono verso il retro, allargandosi
-    lobe_y=(0.0, 290.0, 345.0),  # sezioni lungo Y
-    lobe_x=(35.0, 72.0, 76.0),   # centro lobo (|X|)
-    lobe_r=(15.0, 28.0, 30.0),   # semi-larghezza lobo
-    lobe_h=(18.0, 24.0, 4.0),    # quota cima lobo (da asse estensioni)
-    housing_wall=2.6,            # carenatura estensioni nel canale
+    keel=((0.0, -20.0), (140.0, -28.0), (270.0, -37.0), (280.0, -37.0), (280.0, -14.0), (360.0, -14.0)),
+    # incavi per gli avambracci (sezione trasversale): canale centrale, bordino, poi culla concava
+    # che scende e risale fino al bordo parete
+    channel_w=46.0,              # larghezza canale centrale (gel)
+    ridge_x=33.0,                # dove inizia l'incavo (|X|)
+    ridge_z=15.0,                # quota bordino canale / inizio incavo
+    cradle_z=8.0,                # quota fondo incavo (massima)
+    cradle_mid=0.45,             # posizione del fondo incavo tra bordino e parete (0..1)
+    plate_h=15.0,                # quota piastra frontale
+    housing_wall=3.0,            # carenatura estensioni sotto l'incavo
     rear_w=72.0,                 # larghezza blocco posteriore
     rear_y0=268.0,               # inizio blocco posteriore
     rear_z0=30.0,                # quota faccia superiore del blocco all'inizio
@@ -83,21 +86,40 @@ def spine_half(p):
 
 
 # ---------------------------------------------------------------- vasca
-def tub_section(p, W, H):
-    """Poligono (x,z) del guscio destro: fondo da x=0 a Wf, poi parete svasata fino a (W, H)."""
+def tub_centerline(p, W, H):
+    """Linea media (x,z) della metà destra: canale, bordino, incavo concavo, parete fino a (W, H)."""
     t, zf = p["t"], p["z_floor"]
-    k = math.tan(math.radians(p["flare"]))
-    Wf = W - (H - zf) * k                 # spigolo esterno fondo
-    r = 6.0                               # raccordo fondo/parete
-    pts_out = [(0, zf), (Wf - r * 0.4, zf)]
-    for i in range(1, 6):                 # raccordo esterno
-        a = math.radians(90 * i / 5) * (1 - p["flare"] / 90)
-        pts_out.append((Wf - r * 0.4 + r * math.sin(a) * 0.6, zf + r * (1 - math.cos(a)) * 0.6))
-    pts_out.append((W, H))
-    # lato interno: offset di t verso l'alto/l'interno
-    tn = t / math.cos(math.radians(p["flare"]))
-    pts_in = [(W - tn, H), (Wf - tn * 0.6 + 0.6, zf + t + 1.2), (Wf - r, zf + t), (0, zf + t)]
-    return pts_out + pts_in
+    cw, x0, zr, um = p["channel_w"] / 2, p["ridge_x"], p["ridge_z"], p["cradle_mid"]
+    zc = min(p["cradle_z"], H - 4.0)
+    zfc = zf + t / 2
+    pts = [(0.0, zfc), (cw, zfc), (cw, zr), (x0, zr)]
+    n = 22
+    for i in range(1, n + 1):
+        u = i / n
+        x = x0 + (W - x0) * u
+        if u <= um:
+            z = zc + (zr - zc) * (1 - u / um) ** 2
+        else:
+            z = zc + (H - zc) * ((u - um) / (1 - um)) ** 2.2
+        pts.append((x, z))
+    pts.append((W + 2.0, H + 0.6))  # piccolo labbro
+    return pts
+
+
+def tub_section(p, W, H):
+    """Poligono chiuso del guscio destro (linea media ± t/2)."""
+    t = p["t"]
+    pts = tub_centerline(p, W, H)
+    up, dn = [], []
+    for i, (x, z) in enumerate(pts):
+        xa, za = pts[max(i - 1, 0)]
+        xb, zb = pts[min(i + 1, len(pts) - 1)]
+        ln = math.hypot(xb - xa, zb - za)
+        nx, nz = -(zb - za) / ln, (xb - xa) / ln
+        up.append((x + nx * t / 2, z + nz * t / 2))
+        dn.append((x - nx * t / 2, z - nz * t / 2))
+    up[0] = (0.0, up[0][1]); dn[0] = (0.0, dn[0][1])  # lato sul piano di simmetria
+    return up + dn[::-1]
 
 
 def tub(p):
@@ -110,36 +132,19 @@ def tub(p):
     for a, b in zip(secs[1:], secs[2:]):
         right = right.union(loft(a, b))
     half = right.union(right.mirror("YZ"))
-    # parete frontale: chiude la vasca alla spalla fino al bordo
+    # parete frontale: chiude la vasca alla spalla, dalla sezione fino al bordo
     y0, W, H = secs[0]
-    Wf = W - (H - p["z_floor"]) * math.tan(math.radians(p["flare"]))
-    cap = (cq.Workplane("XZ", origin=(0, y0 + p["t"], 0))
-           .polyline([(-Wf, p["z_floor"]), (Wf, p["z_floor"]), (W, H), (-W, H)]).close()
-           .extrude(p["t"]))
+    cl = tub_centerline(p, W, H)
+    top = max(H, p["ridge_z"]) + 1.0
+    outline = [(x, z) for x, z in cl] + [(W + 2.0, top), (-W - 2.0, top)] + [(-x, z) for x, z in reversed(cl)]
+    cap = (cq.Workplane("XZ", origin=(0, y0 + p["t"], 0)).polyline(outline).close().extrude(p["t"]))
     # piano fondo davanti alla spalla (sotto la piastra frontale)
     nose = (cq.Workplane("XY", origin=(0, 0, p["z_floor"])).center(0, y0 / 2)
             .rect(2 * spine_half(p), y0).extrude(p["t"]))
     return half.union(cap).union(nose)
 
 
-# ---------------------------------------------------------------- lobi + dorsale
-def lobes(p):
-    """Lobi convessi divergenti (loft di semiellissi appoggiate al fondo)."""
-    zf = p["z_floor"]
-    out = None
-    for sx in (-1, 1):
-        wires = []
-        for y, cx, rx, rz in zip(p["lobe_y"], p["lobe_x"], p["lobe_r"], p["lobe_h"]):
-            n = 24
-            pts = [cq.Vector(sx * cx + rx * math.cos(math.pi * i / n), y, zf + (rz - zf) * math.sin(math.pi * i / n))
-                   for i in range(n + 1)]
-            wires.append(cq.Wire.makePolygon(pts, close=True))
-        lo = (cq.Workplane().add(cq.Solid.makeLoft(wires[:2], ruled=True))
-              .union(cq.Workplane().add(cq.Solid.makeLoft(wires[1:], ruled=True))))
-        out = lo if out is None else out.union(lo)
-    return out
-
-
+# ---------------------------------------------------------------- carenature + dorsale
 def housings(p):
     """Carenature cilindriche attorno alle estensioni, visibili come nervature nel canale."""
     r = r_bore(p) + p["housing_wall"]
@@ -175,8 +180,8 @@ def ext_seats(p):
 
 # ---------------------------------------------------------------- piastra frontale / blocco posteriore
 def front_plate(p):
-    """Piastra esagonale tra i lobi che copre l'inizio del canale."""
-    top = p["lobe_h"][0]
+    """Piastra esagonale tra i tubi che copre l'inizio del canale."""
+    top = p["plate_h"]
     w = p["ext_cc"] / 2
     plate = (cq.Workplane("XY", origin=(0, 0, p["z_floor"]))
              .polyline([(-w, 0), (w, 0), (w, 26), (12, 44), (-12, 44), (-w, 26)]).close()
@@ -239,7 +244,7 @@ def tube_sockets(p):
 
 
 def tray(p):
-    t = (tub(p).union(lobes(p)).union(housings(p)).union(spine(p))
+    t = (tub(p).union(housings(p)).union(spine(p))
          .union(front_plate(p)).union(rear_block(p)))
     return t.cut(ext_seats(p)).cut(tube_sockets(p)).cut(holes(p))
 

@@ -63,6 +63,7 @@ details > div{margin-top:8px;display:flex;flex-direction:column;gap:6px}
 #dsvg.drag{cursor:grabbing}
 #dsvg .vis{fill:none;stroke:var(--ink);stroke-width:var(--sw);stroke-linejoin:round;stroke-linecap:round}
 #dsvg .hid{fill:none;stroke:var(--hid);stroke-width:var(--sw);stroke-dasharray:calc(var(--sw)*6) calc(var(--sw)*4)}
+#dsvg .trc{fill:none;stroke:#0a9396;stroke-width:calc(var(--sw)*1.8);stroke-linejoin:round}
 #dsvg .dim{fill:none;stroke:var(--accent);stroke-width:var(--sw)}
 #dsvg .dimt{fill:var(--accent);font-family:var(--mono)}
 #dsvg .ax{fill:none;stroke:var(--accent);stroke-width:var(--sw);stroke-dasharray:calc(var(--sw)*14) calc(var(--sw)*3) calc(var(--sw)*2) calc(var(--sw)*3);opacity:.5}
@@ -96,12 +97,14 @@ details > div{margin-top:8px;display:flex;flex-direction:column;gap:6px}
   <aside class="side">
     <div>
       <h1>Cockpit Speedmax CF</h1>
-      <p class="sub">v0.5 · estensioni a 70 mm</p>
+      <p class="sub">v0.6 · incavi avambracci · estensioni a 70 mm</p>
     </div>
     <div class="seg"><button id="m-asm" aria-pressed="true">Assieme</button><button id="m-part" aria-pressed="false">Pezzo</button></div>
     <div id="asm-panel">
       <div class="list" id="asm-list"></div>
       <div class="chk" style="margin-top:4px"><input type="checkbox" id="ext" checked><label for="ext">Estensioni Ø22,2</label></div>
+      <div class="chk"><input type="checkbox" id="trc3d"><label for="trc3d">Contorni dal video</label></div>
+      <p class="sub" style="margin:2px 0 0 20px"><span class="sw" style="display:inline-block;background:#0a9396"></span> alto &nbsp;<span class="sw" style="display:inline-block;background:#e08a00"></span> lato &nbsp;<span class="sw" style="display:inline-block;background:#7b4fb0"></span> sotto · usa i tasti vista</p>
     </div>
     <div id="part-panel" hidden>
       <select id="part-sel" aria-label="Scegli pezzo"></select>
@@ -113,6 +116,7 @@ details > div{margin-top:8px;display:flex;flex-direction:column;gap:6px}
       <div class="chk"><input type="checkbox" id="d-hid" checked><label for="d-hid">Linee nascoste</label></div>
       <div class="chk"><input type="checkbox" id="d-dim" checked><label for="d-dim">Quote</label></div>
       <div class="chk"><input type="checkbox" id="d-ref" checked><label for="d-ref">Foto dal video</label></div>
+      <div class="chk"><input type="checkbox" id="d-trc" checked><label for="d-trc">Contorno dal video</label></div>
     </div>
     <details id="align-box" hidden>
       <summary>Allinea foto</summary>
@@ -134,6 +138,7 @@ details > div{margin-top:8px;display:flex;flex-direction:column;gap:6px}
         <input type="range" id="cut-y" min="0" max="360" value="120" aria-label="Posizione taglio">
         <div class="row"><span>fronte</span><span id="cut-v">Y 120</span><span>retro</span></div>
         <div class="chk"><input type="checkbox" id="wire"><label for="wire">Fil di ferro</label></div>
+        <div class="chk"><input type="checkbox" id="ortho"><label for="ortho">Vista ortogonale</label></div>
       </div>
     </details>
     <p class="note">Ricostruito da foto e video, proporzioni ±10–15 %. File di stampa: <a href="https://github.com/Alegnago/cockpit">github.com/Alegnago/cockpit</a></p>
@@ -164,10 +169,16 @@ const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.localClippingEnabled = true;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, 1, 1, 5000);
-camera.up.set(0,0,1);
-const controls = new THREE.OrbitControls(camera, canvas);
-controls.enableDamping = true;
+const persp = new THREE.PerspectiveCamera(35, 1, 1, 5000);
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -5000, 5000);
+persp.up.set(0,0,1); ortho.up.set(0,0,1);
+function makeControls(c){ const k = new THREE.OrbitControls(c, canvas); k.enableDamping = true; return k; }
+let camera = persp, controls = makeControls(camera);
+function setOrthoSize(h){
+  const a = persp.aspect;
+  Object.assign(ortho, {left:-h*a, right:h*a, top:h, bottom:-h});
+  ortho.updateProjectionMatrix();
+}
 scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.75));
 const key = new THREE.DirectionalLight(0xffffff, 0.75); key.position.set(-300,-400,600); scene.add(key);
 const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(300,500,-200); scene.add(rim);
@@ -202,6 +213,29 @@ for (const x of [-35, 35]){
   extGroup.add(m);
 }
 asmGroup.add(extGroup);
+
+// contorni reali dal video (trace.py), su piani davanti al modello: alto z=+160, sotto z=-70, lato x=-150
+const TRACE_COL = {alto:0x0a9396, lato:0xe08a00, sotto:0x7b4fb0};
+const traceGroup = new THREE.Group(); traceGroup.visible = false; scene.add(traceGroup);
+const traceLines = {};
+// in vista Alto/Lato/Sotto mostra solo il contorno di quella vista; nelle altre tutti
+function showTraceFor(view){
+  const only = {top:'alto', side:'lato', under:'sotto'}[view];
+  for (const k in traceLines) traceLines[k].visible = !only || k === only;
+}
+async function loadTraces(){
+  for (const v of ['alto','lato','sotto']){
+    const pts = (await (await fetch('draw/trace_' + v + '.json')).json()).pts;
+    const P = pts.map(([x,y]) => v === 'lato' ? new THREE.Vector3(-150, x, -y) : new THREE.Vector3(x, y, v === 'alto' ? 160 : -70));
+    const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(P),
+      new THREE.LineBasicMaterial({color:TRACE_COL[v], depthTest:false, transparent:true}));
+    line.renderOrder = 10; traceGroup.add(line); traceLines[v] = line;
+  }
+}
+document.getElementById('trc3d').onchange = e => {
+  traceGroup.visible = e.target.checked;
+  if (e.target.checked && !document.getElementById('ortho').checked) document.getElementById('ortho').click();
+};
 
 const list = document.getElementById('asm-list');
 const asmMeshes = {};
@@ -247,14 +281,23 @@ function volume(g){
 }
 
 let mode = 'asm';
-const DIRS = {iso:[-1,-1.25,0.9], top:[0,-0.001,1], side:[-1,0,0.05], front:[0,-1,0.12], under:[-0.8,-1,-0.9]};
+const DIRS = {iso:[-1,-1.25,0.9], top:[0,-0.001,1], side:[-1,0,0.05], front:[0,-1,0.12], under:[0,-0.001,-1]};
 function frame(bb, view){
   const c = new THREE.Vector3(), s = new THREE.Vector3(); bb.getCenter(c); bb.getSize(s);
-  const r = s.length() * 0.5, d = r / Math.sin(THREE.MathUtils.degToRad(camera.fov/2)) * 0.95;
+  const r = s.length() * 0.5, d = r / Math.sin(THREE.MathUtils.degToRad(persp.fov/2)) * 0.95;
   const dir = new THREE.Vector3(...DIRS[view]).normalize();
   camera.position.copy(c).addScaledVector(dir, d);
+  if (camera === ortho){ ortho.zoom = 1; setOrthoSize(r / Math.min(1, persp.aspect) * 0.95); }
+  showTraceFor(view);
   controls.target.copy(c); controls.update();
 }
+document.getElementById('ortho').onchange = e => {
+  const next = e.target.checked ? ortho : persp, t = controls.target.clone();
+  next.position.copy(camera.position);
+  if (next === ortho) setOrthoSize(camera.position.distanceTo(t) * Math.tan(THREE.MathUtils.degToRad(persp.fov/2)));
+  controls.dispose(); camera = next; controls = makeControls(camera);
+  controls.target.copy(t); controls.update();
+};
 const curBounds = () => mode === 'asm' ? bounds : (partGroup.children[0]?.geometry.boundingBox || bounds);
 for (const v of Object.keys(DIRS)) document.getElementById('v-' + v).onclick = () => frame(curBounds(), v);
 
@@ -283,7 +326,8 @@ document.getElementById('wire').onchange = e => { for (const m of mats){ m.wiref
 function resize(){
   const r = canvas.parentElement.getBoundingClientRect();
   renderer.setSize(r.width, r.height, false);
-  camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+  persp.aspect = r.width / r.height; persp.updateProjectionMatrix();
+  setOrthoSize((ortho.top - ortho.bottom) / 2 || 200);
 }
 new ResizeObserver(resize).observe(canvas.parentElement);
 resize();
@@ -354,6 +398,8 @@ async function drawView(v){
   else el('path', {class:'ax', d:`M0,${y0-20} V${y1+20}`}, gAx);
   el('path', {class:'hid', id:'p-hid', d:D.hid}, dsvg);
   el('path', {class:'vis', id:'p-vis', d:D.vis}, dsvg);
+  if (!drawData['t_' + v]) drawData['t_' + v] = (await (await fetch('draw/trace_' + v + '.json')).json()).pts;
+  el('path', {class:'trc', id:'p-trc', d:'M' + drawData['t_' + v].map(p => p.join(',')).join(' L') + 'Z'}, dsvg);
   const gDim = el('g', {id:'g-dim'}, dsvg), fs = Math.max(fitVb[2], fitVb[3]) / 70;
   dimLine(gDim, x0, y1, x1, y1, `${(x1-x0).toFixed(0)} mm`, y1 + m*.6, false, fs);
   dimLine(gDim, x1, y0, x1, y1, `${(y1-y0).toFixed(0)} mm`, x1 + m*.6, true, fs);
@@ -373,6 +419,7 @@ function applyDrawToggles(){
   show('p-hid', document.getElementById('d-hid').checked);
   show('g-dim', document.getElementById('d-dim').checked);
   show('g-ref', document.getElementById('d-ref').checked);
+  show('p-trc', document.getElementById('d-trc').checked);
   document.getElementById('d-align').style.opacity = document.getElementById('d-ref').checked ? 1 : .4;
 }
 const AL = {op:'a-op', x:'a-x', y:'a-y', s:'a-s', r:'a-r'};
@@ -388,7 +435,7 @@ for (const k in AL) document.getElementById(AL[k]).addEventListener('input', () 
   g.firstChild.setAttribute('transform', refTransform(REFS[dview], a));
 });
 document.getElementById('a-reset').onclick = () => { saveAlign(dview, A_DEF); drawView(dview); };
-for (const id of ['d-vis','d-hid','d-dim','d-ref']) document.getElementById(id).onchange = applyDrawToggles;
+for (const id of ['d-vis','d-hid','d-dim','d-ref','d-trc']) document.getElementById(id).onchange = applyDrawToggles;
 for (const k of Object.keys(REFS)) document.getElementById('d-' + k).onclick = () => drawView(k);
 document.getElementById('draw-on').onchange = e => {
   document.getElementById('draw').hidden = !e.target.checked;
@@ -413,6 +460,7 @@ dsvg.addEventListener('pointermove', e => { if (!drag) return; vb = [drag.vb[0] 
 dsvg.addEventListener('pointerup', () => { drag = null; dsvg.classList.remove('drag'); });
 dsvg.addEventListener('dblclick', () => { vb = [...fitVb]; setVb(); });
 
+loadTraces();
 loadAsm().then(() => { document.getElementById('load').hidden = true; frame(bounds, 'iso'); })
   .catch(err => { document.getElementById('load').textContent = 'Modelli non caricati: ' + err.message; });
 </script>
