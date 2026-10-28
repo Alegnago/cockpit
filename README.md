@@ -63,3 +63,13 @@ Tutte stanno nel volume 256³ (pezzo più largo 247 mm).
 - `cockpit-studio.html` – studio iniziale da foto (v0.1, superato)
 
 Installazione: `pip install -r requirements.txt`
+
+## Sito web (Vercel)
+Il repo si pubblica come sito statico: `vercel.json` esegue `node build-site.mjs`, che crea `site/`
+(visualizzatore + disegni + file STL/STEP scaricabili in `files/`). Nessuna dipendenza da installare.
+
+1. Su vercel.com → **Add New… → Project** → importa `Alegnago/cockpit`.
+2. Lascia le impostazioni proposte (vengono da `vercel.json`) → **Deploy**.
+3. Ogni push su `main` ripubblica il sito.
+
+Prova in locale: `node build-site.mjs && python3 -m http.server 8778 --directory site`

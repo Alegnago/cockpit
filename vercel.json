@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "node build-site.mjs",
+  "outputDirectory": "site",
+  "headers": [
+    {
+      "source": "/files/(.*)",
+      "headers": [{ "key": "Content-Disposition", "value": "attachment" }]
+    }
+  ]
+}

@@ -52,6 +52,9 @@ summary::-webkit-details-marker{display:none}
 summary::after{content:"+";font:13px var(--mono)}
 details[open] summary::after{content:"–"}
 details > div{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.dl-list{display:grid;grid-template-columns:1fr auto auto;gap:2px 8px;font-size:12px}
+.dl-list a{color:var(--accent);text-decoration:none;font:11px var(--mono)}
+.dl-list a:hover{text-decoration:underline}
 .load{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font:12px var(--mono)}
 /* disegni tecnici */
 .draw{position:absolute;inset:0;background:var(--sheet);display:flex;flex-direction:column}
@@ -140,6 +143,10 @@ details > div{margin-top:8px;display:flex;flex-direction:column;gap:6px}
         <div class="chk"><input type="checkbox" id="wire"><label for="wire">Fil di ferro</label></div>
         <div class="chk"><input type="checkbox" id="ortho"><label for="ortho">Vista ortogonale</label></div>
       </div>
+    </details>
+    <details id="dl" hidden>
+      <summary>Scarica file di stampa</summary>
+      <div class="dl-list" id="dl-list"></div>
     </details>
     <p class="note">Ricostruito da foto e video, proporzioni ±10–15 %. File di stampa: <a href="https://github.com/Alegnago/cockpit">github.com/Alegnago/cockpit</a></p>
   </aside>
@@ -459,6 +466,15 @@ dsvg.addEventListener('pointerdown', e => { drag = {x:e.clientX, y:e.clientY, vb
 dsvg.addEventListener('pointermove', e => { if (!drag) return; vb = [drag.vb[0] - (e.clientX-drag.x)*drag.s, drag.vb[1] - (e.clientY-drag.y)*drag.s, vb[2], vb[3]]; setVb(); });
 dsvg.addEventListener('pointerup', () => { drag = null; dsvg.classList.remove('drag'); });
 dsvg.addEventListener('dblclick', () => { vb = [...fitVb]; setVb(); });
+
+// sezione download: solo sul sito (Vercel), non nell'anteprima dove i download sono bloccati
+if (window.SITE){
+  const box = document.getElementById('dl-list');
+  for (const [id, name] of [...PARTS, ['assieme', 'Assieme completo']]){
+    box.insertAdjacentHTML('beforeend', `<span>${name}</span><a href="files/${id}.stl" download>STL</a><a href="files/${id}.step" download>STEP</a>`);
+  }
+  document.getElementById('dl').hidden = false;
+}
 
 loadTraces();
 loadAsm().then(() => { document.getElementById('load').hidden = true; frame(bounds, 'iso'); })
