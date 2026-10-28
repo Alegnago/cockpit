@@ -1,0 +1,418 @@
+<meta charset="utf-8">
+<title>Cockpit Speedmax 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* layout: vista 3D a tutta altezza + colonna comandi sottile a destra; telefono: comandi sotto. Solo tema chiaro. */
+:root{
+  --bg:#ffffff; --fg:#16191d; --muted:#7a828c; --line:#eceef1; --soft:#f5f6f8;
+  --accent:#2563c9; --stage:#f3f4f6;
+  --sheet:#ffffff; --ink:#c0134f; --hid:#d9488a;
+  --sans:"IBM Plex Sans",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font:13px/1.5 var(--sans);margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px;box-sizing:border-box}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:20px;height:100%;min-height:520px}
+.stage{position:relative;background:var(--stage);border-radius:12px;overflow:hidden;min-width:0}
+#c{display:block;width:100%;height:100%;touch-action:none}
+.views{position:absolute;left:12px;top:12px;display:flex;gap:2px;background:rgba(255,255,255,.85);border-radius:8px;padding:2px}
+.views button,.tabs button{border:0;background:transparent;color:var(--muted);padding:4px 9px;border-radius:6px;font:12px var(--sans)}
+.views button:hover,.tabs button:hover{color:var(--fg)}
+.tabs button[aria-pressed="true"]{background:var(--fg);color:#fff}
+.side{display:flex;flex-direction:column;gap:18px;overflow:auto;min-width:0;padding-top:2px}
+h1{font-size:15px;font-weight:600;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:12px;margin:2px 0 0}
+h2{font:500 11px var(--sans);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 6px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border-radius:8px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;padding:5px;border-radius:6px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:500}
+button{font:12px var(--sans);color:var(--fg);background:var(--soft);border:0;border-radius:6px;padding:5px 9px;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.list{display:flex;flex-direction:column;gap:1px}
+.list label,.chk label{cursor:pointer}
+.list label{display:flex;align-items:center;gap:8px;padding:3px 0}
+.list input,.chk input{accent-color:var(--fg);margin:0}
+.sw{width:8px;height:8px;border-radius:50%;flex:none}
+select{width:100%;font:12px var(--sans);padding:6px;border-radius:6px;border:0;background:var(--soft);color:var(--fg)}
+input[type=range]{width:100%;accent-color:var(--fg)}
+.row{display:flex;justify-content:space-between;font:11px var(--mono);color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font:12px var(--mono)}
+.kv span:nth-child(odd){color:var(--muted)}
+.kv span{font-variant-numeric:tabular-nums}
+.note{font-size:11px;color:var(--muted);margin-top:auto}
+.note a{color:var(--muted)}
+.chk{display:flex;align-items:center;gap:8px;padding:2px 0}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;list-style:none;font:500 11px var(--sans);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font:13px var(--mono)}
+details[open] summary::after{content:"–"}
+details > div{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.load{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font:12px var(--mono)}
+/* disegni tecnici */
+.draw{position:absolute;inset:0;background:var(--sheet);display:flex;flex-direction:column}
+.draw-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:12px 12px 0}
+.draw-bar .tabs{display:flex;gap:2px;background:var(--soft);border-radius:8px;padding:2px}
+.draw-bar .sp{flex:1}
+.draw-bar .hint{font:11px var(--mono);color:var(--muted)}
+#dsvg{flex:1;width:100%;min-height:0;cursor:grab;touch-action:none}
+#dsvg.drag{cursor:grabbing}
+#dsvg .vis{fill:none;stroke:var(--ink);stroke-width:var(--sw);stroke-linejoin:round;stroke-linecap:round}
+#dsvg .hid{fill:none;stroke:var(--hid);stroke-width:var(--sw);stroke-dasharray:calc(var(--sw)*6) calc(var(--sw)*4)}
+#dsvg .dim{fill:none;stroke:var(--accent);stroke-width:var(--sw)}
+#dsvg .dimt{fill:var(--accent);font-family:var(--mono)}
+#dsvg .ax{fill:none;stroke:var(--accent);stroke-width:var(--sw);stroke-dasharray:calc(var(--sw)*14) calc(var(--sw)*3) calc(var(--sw)*2) calc(var(--sw)*3);opacity:.5}
+.align{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;align-items:center;font:11px var(--mono);color:var(--muted)}
+.align output{color:var(--fg);min-width:46px;text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:760px){
+  html,body{height:auto}
+  .app{grid-template-columns:1fr;height:auto}
+  .stage{height:62vh;min-height:340px}
+}
+</style>
+
+<div class="app">
+  <div class="stage">
+    <canvas id="c" aria-label="Vista 3D del cockpit"></canvas>
+    <div class="views">
+      <button id="v-iso">Iso</button><button id="v-top">Alto</button><button id="v-side">Lato</button><button id="v-front">Fronte</button><button id="v-under">Sotto</button>
+    </div>
+    <div class="load" id="load">Carico i modelli…</div>
+    <div class="draw" id="draw" hidden>
+      <div class="draw-bar">
+        <div class="tabs" role="group" aria-label="Vista disegno">
+          <button id="d-lato" aria-pressed="true">Lato</button><button id="d-alto" aria-pressed="false">Alto</button><button id="d-sotto" aria-pressed="false">Sotto</button>
+        </div>
+        <span class="sp"></span>
+        <span class="hint">rotella zoom · trascina · doppio clic adatta</span>
+      </div>
+      <svg id="dsvg" aria-label="Disegno tecnico"></svg>
+    </div>
+  </div>
+  <aside class="side">
+    <div>
+      <h1>Cockpit Speedmax CF</h1>
+      <p class="sub">v0.5 · estensioni a 70 mm</p>
+    </div>
+    <div class="seg"><button id="m-asm" aria-pressed="true">Assieme</button><button id="m-part" aria-pressed="false">Pezzo</button></div>
+    <div id="asm-panel">
+      <div class="list" id="asm-list"></div>
+      <div class="chk" style="margin-top:4px"><input type="checkbox" id="ext" checked><label for="ext">Estensioni Ø22,2</label></div>
+    </div>
+    <div id="part-panel" hidden>
+      <select id="part-sel" aria-label="Scegli pezzo"></select>
+      <div class="kv" id="part-kv" style="margin-top:10px"></div>
+    </div>
+    <div class="chk"><input type="checkbox" id="draw-on"><label for="draw-on">Disegni tecnici</label></div>
+    <div id="draw-ctl" hidden style="display:flex;flex-direction:column;gap:2px;margin-top:-12px;padding-left:20px">
+      <div class="chk"><input type="checkbox" id="d-vis" checked><label for="d-vis">Spigoli</label></div>
+      <div class="chk"><input type="checkbox" id="d-hid" checked><label for="d-hid">Linee nascoste</label></div>
+      <div class="chk"><input type="checkbox" id="d-dim" checked><label for="d-dim">Quote</label></div>
+      <div class="chk"><input type="checkbox" id="d-ref" checked><label for="d-ref">Foto dal video</label></div>
+    </div>
+    <details id="align-box" hidden>
+      <summary>Allinea foto</summary>
+      <div>
+        <div class="align" id="d-align">
+          <span>Opacità</span><input type="range" id="a-op" min="0" max="100" value="70"><output id="o-op"></output>
+          <span>X</span><input type="range" id="a-x" min="-80" max="80" step="0.5" value="0"><output id="o-x"></output>
+          <span>Y</span><input type="range" id="a-y" min="-80" max="80" step="0.5" value="0"><output id="o-y"></output>
+          <span>Scala</span><input type="range" id="a-s" min="70" max="130" step="0.5" value="100"><output id="o-s"></output>
+          <span>Ruota</span><input type="range" id="a-r" min="-15" max="15" step="0.25" value="0"><output id="o-r"></output>
+        </div>
+        <button id="a-reset" type="button">Ripristina</button>
+      </div>
+    </details>
+    <details>
+      <summary>Sezione e vista</summary>
+      <div>
+        <div class="chk"><input type="checkbox" id="cut"><label for="cut">Taglio trasversale</label></div>
+        <input type="range" id="cut-y" min="0" max="360" value="120" aria-label="Posizione taglio">
+        <div class="row"><span>fronte</span><span id="cut-v">Y 120</span><span>retro</span></div>
+        <div class="chk"><input type="checkbox" id="wire"><label for="wire">Fil di ferro</label></div>
+      </div>
+    </details>
+    <p class="note">Ricostruito da foto e video, proporzioni ±10–15 %. File di stampa: <a href="https://github.com/Alegnago/cockpit">github.com/Alegnago/cockpit</a></p>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const ASM = [
+  {id:'vassoio_ant',  name:'P1 Vassoio anteriore', color:0x3a4048},
+  {id:'vassoio_post', name:'P2 Vassoio posteriore',color:0x4a525c},
+  {id:'tubo_dx',      name:'P3 Tubo punta dx',     color:0x23272c},
+  {id:'tubo_sx',      name:'P3 Tubo punta sx',     color:0x23272c},
+  {id:'colonnina',    name:'P4 Colonnina computer',color:0x3d8fe0},
+  {id:'braccio',      name:'P5 Braccio borraccia', color:0x8a939e},
+];
+const PARTS = [
+  ['P0_test_clip','P0 Fetta di prova clip'],['P1_vassoio_anteriore','P1 Vassoio anteriore'],
+  ['P2_vassoio_posteriore','P2 Vassoio posteriore'],['P3_tubo_punta_dx','P3 Tubo punta dx'],
+  ['P3_tubo_punta_sx','P3 Tubo punta sx'],['P4_colonnina_computer','P4 Colonnina computer'],
+  ['P5_braccio_borraccia','P5 Braccio borraccia'],
+];
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 1, 5000);
+camera.up.set(0,0,1);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.75));
+const key = new THREE.DirectionalLight(0xffffff, 0.75); key.position.set(-300,-400,600); scene.add(key);
+const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(300,500,-200); scene.add(rim);
+
+const clipPlane = new THREE.Plane(new THREE.Vector3(0,-1,0), 120);
+const asmGroup = new THREE.Group(), partGroup = new THREE.Group();
+scene.add(asmGroup, partGroup);
+const loader = new THREE.STLLoader();
+// STL binari pubblicati in base64 (.txt): l'host non serve .stl
+async function load(url){
+  const r = await fetch(url.replace(/\.stl$/, '.txt'));
+  if (!r.ok) throw new Error(url + ' ' + r.status);
+  const s = atob((await r.text()).replace(/\s+/g, ''));
+  const buf = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) buf[i] = s.charCodeAt(i);
+  return loader.parse(buf.buffer);
+}
+const mats = [];
+function mat(color){
+  const m = new THREE.MeshStandardMaterial({color, roughness:.7, metalness:.05, side:THREE.DoubleSide, clippingPlanes:[]});
+  mats.push(m); return m;
+}
+
+// estensioni Ø22,2 (riferimento, non stampate)
+const extGroup = new THREE.Group();
+const extMat = new THREE.MeshStandardMaterial({color:0xb9c2cc, roughness:.4, metalness:.5, transparent:true, opacity:.55, clippingPlanes:[]});
+mats.push(extMat);
+for (const x of [-35, 35]){
+  const g = new THREE.CylinderGeometry(11.1, 11.1, 420, 40);
+  const m = new THREE.Mesh(g, extMat);
+  m.position.set(x, 200, 0); // cilindro lungo Y (default già lungo Y); prosegue verso i poggiabraccia
+  extGroup.add(m);
+}
+asmGroup.add(extGroup);
+
+const list = document.getElementById('asm-list');
+const asmMeshes = {};
+let bounds = new THREE.Box3();
+
+async function loadAsm(){
+  for (const p of ASM){
+    const g = await load('asm/' + p.id + '.stl');
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, mat(p.color));
+    asmMeshes[p.id] = m; asmGroup.add(m);
+    g.computeBoundingBox(); bounds.union(g.boundingBox);
+    const row = document.createElement('label');
+    row.innerHTML = `<input type="checkbox" id="vis-${p.id}" checked><span class="sw" style="background:#${p.color.toString(16).padStart(6,'0')}"></span>${p.name}`;
+    row.querySelector('input').addEventListener('change', e => { m.visible = e.target.checked; });
+    list.appendChild(row);
+  }
+}
+
+const sel = document.getElementById('part-sel');
+PARTS.forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name; sel.appendChild(o); });
+const partCache = {};
+async function showPart(id){
+  partGroup.clear();
+  if (!partCache[id]){
+    const g = await load('parts/' + id + '.stl'); g.computeVertexNormals(); g.computeBoundingBox();
+    partCache[id] = new THREE.Mesh(g, mat(id.startsWith('P4') ? 0x3d8fe0 : 0x434a53));
+  }
+  const m = partCache[id]; partGroup.add(m);
+  const bb = m.geometry.boundingBox, s = new THREE.Vector3(); bb.getSize(s);
+  const vol = volume(m.geometry);
+  document.getElementById('part-kv').innerHTML =
+    `<span>X</span><span>${s.x.toFixed(1)} mm</span><span>Y</span><span>${s.y.toFixed(1)} mm</span>` +
+    `<span>Z</span><span>${s.z.toFixed(1)} mm</span><span>Volume</span><span>${(vol/1000).toFixed(1)} cm³</span>` +
+    `<span>PETG 100%</span><span>≈ ${(vol/1000*1.27).toFixed(0)} g (pieno)</span>`;
+  frame(bb, 'iso');
+}
+function volume(g){
+  const p = g.attributes.position.array; let v = 0;
+  for (let i = 0; i < p.length; i += 9)
+    v += (p[i]*(p[i+4]*p[i+8]-p[i+5]*p[i+7]) - p[i+1]*(p[i+3]*p[i+8]-p[i+5]*p[i+6]) + p[i+2]*(p[i+3]*p[i+7]-p[i+4]*p[i+6]))/6;
+  return Math.abs(v);
+}
+
+let mode = 'asm';
+const DIRS = {iso:[-1,-1.25,0.9], top:[0,-0.001,1], side:[-1,0,0.05], front:[0,-1,0.12], under:[-0.8,-1,-0.9]};
+function frame(bb, view){
+  const c = new THREE.Vector3(), s = new THREE.Vector3(); bb.getCenter(c); bb.getSize(s);
+  const r = s.length() * 0.5, d = r / Math.sin(THREE.MathUtils.degToRad(camera.fov/2)) * 0.95;
+  const dir = new THREE.Vector3(...DIRS[view]).normalize();
+  camera.position.copy(c).addScaledVector(dir, d);
+  controls.target.copy(c); controls.update();
+}
+const curBounds = () => mode === 'asm' ? bounds : (partGroup.children[0]?.geometry.boundingBox || bounds);
+for (const v of Object.keys(DIRS)) document.getElementById('v-' + v).onclick = () => frame(curBounds(), v);
+
+function setMode(m){
+  mode = m;
+  document.getElementById('m-asm').setAttribute('aria-pressed', m === 'asm');
+  document.getElementById('m-part').setAttribute('aria-pressed', m === 'part');
+  document.getElementById('asm-panel').hidden = m !== 'asm';
+  document.getElementById('part-panel').hidden = m !== 'part';
+  asmGroup.visible = m === 'asm'; partGroup.visible = m === 'part';
+  if (m === 'part') showPart(sel.value); else frame(bounds, 'iso');
+}
+document.getElementById('m-asm').onclick = () => setMode('asm');
+document.getElementById('m-part').onclick = () => setMode('part');
+sel.onchange = () => showPart(sel.value);
+document.getElementById('ext').onchange = e => { extGroup.visible = e.target.checked; };
+
+const cut = document.getElementById('cut'), cutY = document.getElementById('cut-y'), cutV = document.getElementById('cut-v');
+function applyCut(){
+  clipPlane.constant = +cutY.value; cutV.textContent = 'Y ' + cutY.value;
+  for (const m of mats){ m.clippingPlanes = cut.checked ? [clipPlane] : []; m.needsUpdate = true; }
+}
+cut.onchange = applyCut; cutY.oninput = applyCut;
+document.getElementById('wire').onchange = e => { for (const m of mats){ m.wireframe = e.target.checked; } };
+
+function resize(){
+  const r = canvas.parentElement.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas.parentElement);
+resize();
+(function loop(){ controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); })();
+
+// ------------------------------------------------------------ disegni tecnici
+// Coordinate disegno in mm. lato: x = Y (punta a sinistra), y = -Z. alto/sotto: x = X, y = Y (punta in alto).
+// Foto: allineata con due punti foto (px) -> disegno (mm): punta e coda del vassoio.
+const REFS = {
+  lato:  {src:'ref/lato.jpg',  w:1280, h:720,  p1:[330,345], q1:[0,0], p2:[985,343], q2:[360,0]},
+  alto:  {src:'ref/alto.jpg',  w:720,  h:1280, p1:[407,270], q1:[0,0], p2:[397,890], q2:[0,360]},
+  sotto: {src:'ref/sotto.jpg', w:720,  h:1280, p1:[459,295], q1:[0,0], p2:[409,945], q2:[0,360]},
+};
+const NS = 'http://www.w3.org/2000/svg';
+const dsvg = document.getElementById('dsvg');
+const drawData = {};
+let dview = 'lato', vb = null, fitVb = null;
+const A_DEF = {op:70, x:0, y:0, s:100, r:0};
+const loadAlign = v => { try { return {...A_DEF, ...JSON.parse(localStorage.getItem('align-' + v) || '{}')}; } catch { return {...A_DEF}; } };
+const saveAlign = (v, a) => { try { localStorage.setItem('align-' + v, JSON.stringify(a)); } catch {} };
+
+function el(tag, attrs, parent){
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function refTransform(R, a){
+  const dx = R.p2[0]-R.p1[0], dy = R.p2[1]-R.p1[1], qx = R.q2[0]-R.q1[0], qy = R.q2[1]-R.q1[1];
+  const s = Math.hypot(qx,qy) / Math.hypot(dx,dy) * a.s/100;
+  const th = (Math.atan2(qy,qx) - Math.atan2(dy,dx)) * 180/Math.PI + a.r;
+  return `translate(${R.q1[0]+a.x} ${R.q1[1]+a.y}) rotate(${th}) scale(${s}) translate(${-R.p1[0]} ${-R.p1[1]})`;
+}
+function dimLine(g, x1, y1, x2, y2, txt, off, vertical, fs){
+  const sw = fs/7;
+  if (!vertical){
+    const y = off;
+    el('path', {class:'dim', d:`M${x1},${y1} V${y} M${x2},${y2} V${y} M${x1},${y} H${x2}`}, g);
+    el('path', {class:'dim', d:`M${x1+fs*.8},${y-fs*.3} L${x1},${y} L${x1+fs*.8},${y+fs*.3} M${x2-fs*.8},${y-fs*.3} L${x2},${y} L${x2-fs*.8},${y+fs*.3}`}, g);
+    const t = el('text', {class:'dimt', x:(x1+x2)/2, y:y - fs*.4, 'font-size':fs, 'text-anchor':'middle'}, g); t.textContent = txt;
+  } else {
+    const x = off;
+    el('path', {class:'dim', d:`M${x1},${y1} H${x} M${x2},${y2} H${x} M${x},${y1} V${y2}`}, g);
+    el('path', {class:'dim', d:`M${x-fs*.3},${y1+fs*.8} L${x},${y1} L${x+fs*.3},${y1+fs*.8} M${x-fs*.3},${y2-fs*.8} L${x},${y2} L${x+fs*.3},${y2-fs*.8}`}, g);
+    const t = el('text', {class:'dimt', x:x - fs*.5, y:(y1+y2)/2, 'font-size':fs, 'text-anchor':'middle', transform:`rotate(-90 ${x - fs*.5} ${(y1+y2)/2})`}, g); t.textContent = txt;
+  }
+}
+async function drawView(v){
+  dview = v;
+  for (const k of Object.keys(REFS)) document.getElementById('d-' + k).setAttribute('aria-pressed', k === v);
+  if (!drawData[v]){
+    const r = await fetch('draw/' + v + '.json');
+    drawData[v] = await r.json();
+  }
+  const D = drawData[v], [x0,y0,x1,y1] = D.bbox, m = 45;
+  fitVb = [x0-m, y0-m, x1-x0+2*m, y1-y0+2*m];
+  vb = [...fitVb];
+  dsvg.innerHTML = '';
+  const sw = Math.max(fitVb[2], fitVb[3]) / 900;
+  dsvg.style.setProperty('--sw', sw);
+  const a = loadAlign(v); syncAlign(a);
+  const R = REFS[v];
+  const gRef = el('g', {id:'g-ref', opacity:a.op/100}, dsvg);
+  el('image', {href:R.src, width:R.w, height:R.h, transform:refTransform(R, a), preserveAspectRatio:'none'}, gRef);
+  // assi di riferimento
+  const gAx = el('g', {id:'g-ax'}, dsvg);
+  if (v === 'lato') el('path', {class:'ax', d:`M${x0-20},0 H${x1+20}`}, gAx);
+  else el('path', {class:'ax', d:`M0,${y0-20} V${y1+20}`}, gAx);
+  el('path', {class:'hid', id:'p-hid', d:D.hid}, dsvg);
+  el('path', {class:'vis', id:'p-vis', d:D.vis}, dsvg);
+  const gDim = el('g', {id:'g-dim'}, dsvg), fs = Math.max(fitVb[2], fitVb[3]) / 70;
+  dimLine(gDim, x0, y1, x1, y1, `${(x1-x0).toFixed(0)} mm`, y1 + m*.6, false, fs);
+  dimLine(gDim, x1, y0, x1, y1, `${(y1-y0).toFixed(0)} mm`, x1 + m*.6, true, fs);
+  if (v === 'lato'){
+    const t = el('text', {class:'dimt', x:x0, y:y0 - m*.45, 'font-size':fs}, gDim);
+    t.textContent = 'punta ← → coda · asse estensioni tratteggio-punto';
+  } else {
+    const t = el('text', {class:'dimt', x:x0, y:y0 - m*.45, 'font-size':fs}, gDim);
+    t.textContent = v === 'alto' ? 'vista dall\'alto · punta in alto' : 'vista da sotto · punta in alto';
+  }
+  applyDrawToggles(); setVb();
+}
+function setVb(){ dsvg.setAttribute('viewBox', vb.join(' ')); }
+function applyDrawToggles(){
+  const show = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; };
+  show('p-vis', document.getElementById('d-vis').checked);
+  show('p-hid', document.getElementById('d-hid').checked);
+  show('g-dim', document.getElementById('d-dim').checked);
+  show('g-ref', document.getElementById('d-ref').checked);
+  document.getElementById('d-align').style.opacity = document.getElementById('d-ref').checked ? 1 : .4;
+}
+const AL = {op:'a-op', x:'a-x', y:'a-y', s:'a-s', r:'a-r'};
+const FMT = {op:v=>v+' %', x:v=>v+' mm', y:v=>v+' mm', s:v=>v+' %', r:v=>v+'°'};
+function syncAlign(a){
+  for (const k in AL){ document.getElementById(AL[k]).value = a[k]; document.getElementById('o-' + k).textContent = FMT[k](a[k]); }
+}
+function readAlign(){ const a = {}; for (const k in AL) a[k] = +document.getElementById(AL[k]).value; return a; }
+for (const k in AL) document.getElementById(AL[k]).addEventListener('input', () => {
+  const a = readAlign(); syncAlign(a); saveAlign(dview, a);
+  const g = document.getElementById('g-ref'); if (!g) return;
+  g.setAttribute('opacity', a.op/100);
+  g.firstChild.setAttribute('transform', refTransform(REFS[dview], a));
+});
+document.getElementById('a-reset').onclick = () => { saveAlign(dview, A_DEF); drawView(dview); };
+for (const id of ['d-vis','d-hid','d-dim','d-ref']) document.getElementById(id).onchange = applyDrawToggles;
+for (const k of Object.keys(REFS)) document.getElementById('d-' + k).onclick = () => drawView(k);
+document.getElementById('draw-on').onchange = e => {
+  document.getElementById('draw').hidden = !e.target.checked;
+  document.getElementById('draw-ctl').hidden = !e.target.checked;
+  document.getElementById('align-box').hidden = !e.target.checked;
+  if (e.target.checked) drawView(dview);
+};
+// zoom e pan del disegno
+function svgPt(evt){
+  const r = dsvg.getBoundingClientRect(), s = Math.max(vb[2]/r.width, vb[3]/r.height);
+  const ox = (r.width*s - vb[2])/2, oy = (r.height*s - vb[3])/2;
+  return [vb[0] - ox + (evt.clientX - r.left)*s, vb[1] - oy + (evt.clientY - r.top)*s, s];
+}
+dsvg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const [px, py] = svgPt(e), k = Math.exp(e.deltaY * 0.0015);
+  vb = [px - (px - vb[0])*k, py - (py - vb[1])*k, vb[2]*k, vb[3]*k]; setVb();
+}, {passive:false});
+let drag = null;
+dsvg.addEventListener('pointerdown', e => { drag = {x:e.clientX, y:e.clientY, vb:[...vb], s:svgPt(e)[2]}; dsvg.classList.add('drag'); dsvg.setPointerCapture(e.pointerId); });
+dsvg.addEventListener('pointermove', e => { if (!drag) return; vb = [drag.vb[0] - (e.clientX-drag.x)*drag.s, drag.vb[1] - (e.clientY-drag.y)*drag.s, vb[2], vb[3]]; setVb(); });
+dsvg.addEventListener('pointerup', () => { drag = null; dsvg.classList.remove('drag'); });
+dsvg.addEventListener('dblclick', () => { vb = [...fitVb]; setVb(); });
+
+loadAsm().then(() => { document.getElementById('load').hidden = true; frame(bounds, 'iso'); })
+  .catch(err => { document.getElementById('load').textContent = 'Modelli non caricati: ' + err.message; });
+</script>

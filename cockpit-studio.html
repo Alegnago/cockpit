@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cockpit Tri – Studio</title>
+<style>
+:root{
+  --bg:#f6f5f1; --paper:#ffffff; --ink:#1d1f22; --muted:#6b6f76; --line:#1d1f22;
+  --hid:#7a8088; --dim:#1f5fbf; --warn:#c2372b; --fill:#e9ebee; --cut:#cfd4da; --accent:#1f5fbf;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121417; --paper:#1a1d21; --ink:#e7e9ec; --muted:#9aa1aa; --line:#e7e9ec;
+    --hid:#8b929b; --dim:#6aa5ff; --warn:#ff6b5e; --fill:#262a30; --cut:#3a4049; --accent:#6aa5ff;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121417; --paper:#1a1d21; --ink:#e7e9ec; --muted:#9aa1aa; --line:#e7e9ec;
+  --hid:#8b929b; --dim:#6aa5ff; --warn:#ff6b5e; --fill:#262a30; --cut:#3a4049; --accent:#6aa5ff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:26px;margin:0 0 4px}
+h2{font-size:18px;margin:40px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--cut)}
+h3{font-size:15px;margin:18px 0 6px}
+p,li{color:var(--ink)}
+.sub{color:var(--muted);margin:0 0 18px}
+.card{background:var(--paper);border:1px solid var(--cut);border-radius:10px;padding:14px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+svg{width:100%;height:auto;display:block}
+.cap{font-size:12px;color:var(--muted);margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--cut);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:99px;border:1px solid currentColor}
+.hi{color:#2e8b57}.md{color:#b7791f}.lo{color:var(--warn)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:26px;border-top:1.5px solid var(--line)}
+ol.q li{margin:6px 0}
+.wrap{overflow-x:auto}
+/* drawing styles (units = mm) */
+.o{fill:none;stroke:var(--line);stroke-width:.7;stroke-linejoin:round}
+.of{fill:var(--fill);stroke:var(--line);stroke-width:.7;stroke-linejoin:round}
+.h{fill:none;stroke:var(--hid);stroke-width:.45;stroke-dasharray:3 2}
+.c{fill:none;stroke:var(--hid);stroke-width:.35;stroke-dasharray:8 2 1.5 2}
+.ph{fill:none;stroke:var(--hid);stroke-width:.45;stroke-dasharray:10 2 2 2 2 2}
+.sh{fill:none;stroke:var(--line);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.d{fill:none;stroke:var(--dim);stroke-width:.35}
+.dt{fill:var(--dim);font-size:6.5px;font-family:ui-monospace,Menlo,monospace}
+.wt{fill:var(--warn);font-size:6.5px;font-family:ui-monospace,Menlo,monospace}
+.lb{fill:var(--muted);font-size:6px;font-family:-apple-system,sans-serif}
+.cutl{fill:none;stroke:var(--warn);stroke-width:.5;stroke-dasharray:10 2 2 2}
+.ct{fill:var(--warn);font-size:8px;font-weight:700;font-family:-apple-system,sans-serif}
+.tt{fill:var(--ink);font-size:8px;font-weight:600;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<main>
+<h1>Cockpit triathlon stampabile – studio pre-modellazione</h1>
+<p class="sub">Reverse-engineering da 5 foto. Quote = <b>stime</b> (scala ricavata da Wahoo ELEMNT BOLT, interasse viti portaborraccia 64 mm, estensioni Ø22,2). Rosso = da misurare prima di modellare.</p>
+
+<div class="legend">
+  <span><i></i> spigolo visibile</span>
+  <span><i style="border-top:1.5px dashed var(--hid)"></i> nascosto / componente esterno</span>
+  <span><i style="border-top:1.5px dashed var(--hid);border-top-style:dotted"></i> asse / posizione alternativa</span>
+  <span><i style="border-color:var(--dim)"></i> quota stimata</span>
+  <span><i style="border-color:var(--warn)"></i> quota critica da misurare</span>
+</div>
+
+<h2>1 · Cosa è il pezzo (lettura foto)</h2>
+<div class="card">
+<table>
+<tr><th>Elemento</th><th>Osservazione</th><th>Foto</th><th>Confidenza</th></tr>
+<tr><td>Vassoio principale</td><td>Pianta trapezoidale, stretto davanti (~100–150), largo dietro (~230). Pareti laterali rialzate, profilo concavo “a grondaia”, labbro posteriore svasato verso l’esterno. Superfici lisce, nero opaco.</td><td>5, 1</td><td><span class="tag hi">alta</span></td></tr>
+<tr><td>Linea di giunzione</td><td>Taglio trasversale a ~metà lunghezza → stampato in <b>2 metà</b> (ognuna ~180 mm, compatibile piatto 256×256). Giunzione da capire (spine, coda di rondine, colla?).</td><td>5, 1</td><td><span class="tag hi">alta</span></td></tr>
+<tr><td>Canale centrale (spina)</td><td>Trogolo a U lungo tutto il vassoio, largo ~46–54 interno. Contiene gel (foto 1). Coperto davanti da un ponte esagonale e dietro dal blocco portaborraccia → due tunnel alle estremità.</td><td>1, 2, 5</td><td><span class="tag hi">alta</span></td></tr>
+<tr><td>Alloggi estensioni</td><td>Due nervature cilindriche ai lati del canale, dalla base dei tubi fino al blocco posteriore. Le estensioni Ø22,2 corrono lì sotto (“si incastra” → probabile clip a C a scatto).</td><td>5</td><td><span class="tag md">media</span></td></tr>
+<tr><td>Tubi anteriori stampati</td><td>Due tubi cavi (parete ~3), escono dalla piastra frontale, curva ~15–25°, leggera convergenza. In punta Shimano Di2 bar-end (SW-R9160, inserto interno Ø19–22,5). Layer line visibili → stampati in verticale o separati.</td><td>4, 5</td><td><span class="tag md">media</span></td></tr>
+<tr><td>Supporto Wahoo</td><td>Colonnina cilindrica Ø~25 con fessura verticale, sale dal canale; sopra adattatore Wahoo quarter-turn (azzurro, 2 viti). Nella foto 5 c’è solo il disco base Ø~30 con 3 fori a metà canale → posizione/altezza probabilmente regolabili.</td><td>1, 3, 5</td><td><span class="tag md">media</span></td></tr>
+<tr><td>Portaborraccia (BTA)</td><td>Blocco posteriore a tunnel + boss verticale + <b>cerniera a nocca con vite M5</b> → braccio con 2 fori (interasse standard 64) per gabbia. Foto 2 braccio alzato, foto 1/5 abbassato → angolo regolabile. Cordino elastico trattiene borraccia.</td><td>1, 2, 5</td><td><span class="tag md">media</span></td></tr>
+<tr><td>Asole posteriori</td><td>2 asole quadrate ~12×12 vicino agli angoli posteriori, con inserto colorato (arancio / bianco) + forellino sotto. Funzione ignota: cinghie velcro? magneti? viti verso staffe poggiabraccia?</td><td>5, 1</td><td><span class="tag lo">bassa</span></td></tr>
+</table>
+</div>
+
+<h2>2 · Disegni tecnici (stima, mm)</h2>
+
+<div class="card wrap">
+<h3>Vista in pianta (dall’alto) · fronte in alto</h3>
+<svg viewBox="-175 -125 350 625" aria-label="Pianta">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 1 L10 5 L0 9 z" fill="var(--dim)"/></marker>
+    <marker id="aw" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 1 L10 5 L0 9 z" fill="var(--warn)"/></marker>
+  </defs>
+  <!-- extensions (external, hidden) -->
+  <path class="h" d="M-46.1 -10 V420 M-23.9 -10 V420 M23.9 -10 V420 M46.1 -10 V420"/>
+  <path class="c" d="M-35 -110 V430 M35 -110 V430 M0 -20 V480"/>
+  <!-- tray outline -->
+  <path class="of" d="M-50 0 L50 0 L50 22 L75 30 L112 300 Q113 340 120 360 L-120 360 Q-113 340 -112 300 L-75 30 L-50 22 Z"/>
+  <!-- wall inner top edge -->
+  <path class="o" d="M69 40 L104 300 Q106 335 110 352 M-69 40 L-104 300 Q-106 335 -110 352"/>
+  <!-- extension housings (ridges) -->
+  <path class="o" d="M-49 30 V300 M-21 48 V300 M21 48 V300 M49 30 V300"/>
+  <!-- trough -->
+  <rect class="o" x="-23" y="48" width="46" height="252"/>
+  <rect class="h" x="-4" y="90" width="8" height="170" rx="4"/>
+  <!-- front plate + bridge -->
+  <path class="of" d="M-50 0 L50 0 L50 22 L-50 22 Z"/>
+  <path class="of" d="M-28 22 L28 22 L28 34 L20 50 L-20 50 L-28 34 Z"/>
+  <!-- printed front tubes -->
+  <path class="of" d="M-49 5 L-46 -55 L-40 -78 L-18 -78 L-21 -55 L-21 5 Z"/>
+  <path class="of" d="M49 5 L46 -55 L40 -78 L18 -78 L21 -55 L21 5 Z"/>
+  <path class="o" d="M-40 -78 L-40 -96 Q-29 -104 -18 -96 L-18 -78 M40 -78 L40 -96 Q29 -104 18 -96 L18 -78"/>
+  <text class="lb" x="-62" y="-100">Shimano SW-R9160</text>
+  <!-- rear block -->
+  <path class="of" d="M-38 300 L38 300 L38 360 L-38 360 Z"/>
+  <!-- cage arm (stowed flat) -->
+  <path class="of" d="M-12 322 L12 322 L12 462 A12 12 0 0 1 -12 462 Z"/>
+  <circle class="o" cx="0" cy="326" r="11"/>
+  <circle class="o" cx="0" cy="394" r="2.7"/><circle class="o" cx="0" cy="458" r="2.7"/>
+  <!-- rear slots -->
+  <rect class="o" x="-92" y="328" width="12" height="12" rx="2"/><rect class="o" x="80" y="328" width="12" height="12" rx="2"/>
+  <circle class="o" cx="-86" cy="350" r="1.4"/><circle class="o" cx="86" cy="350" r="1.4"/>
+  <!-- wahoo puck base -->
+  <circle class="of" cx="0" cy="175" r="15"/>
+  <circle class="o" cx="0" cy="166" r="1.6"/><circle class="o" cx="-8" cy="180" r="1.6"/><circle class="o" cx="8" cy="180" r="1.6"/>
+  <!-- split line -->
+  <path class="cutl" d="M-140 182 H140"/><text class="ct" x="128" y="178">S</text>
+  <!-- section marks -->
+  <path class="cutl" d="M-150 220 H-128 M128 220 H150"/><text class="ct" x="-160" y="223">A</text><text class="ct" x="152" y="223">A</text>
+  <path class="cutl" d="M-150 335 H-128 M128 335 H150"/><text class="ct" x="-160" y="338">B</text><text class="ct" x="152" y="338">B</text>
+  <!-- dims -->
+  <path class="d" d="M-120 365 V395 M120 365 V395"/>
+  <path class="d" d="M-120 390 H120" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="-130" y="386">≈230–240 largh. post.</text>
+  <path class="d" d="M-50 -5 V-22 M50 -5 V-22"/>
+  <path class="d" d="M-50 -18 H-35 M35 -18 H50" />
+  <path class="d" d="M-75 30 H-150 M-120 360 H-155"/>
+  <path class="d" d="M-145 0 V360" marker-start="url(#a)" marker-end="url(#a)"/>
+  <path class="d" d="M-50 0 H-150"/>
+  <text class="dt" transform="translate(-148 230) rotate(-90)">≈360 lungh. vassoio</text>
+  <path class="d" d="M-75 30 V60 M75 30 V60"/>
+  <path class="d" d="M-75 56 H75" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="38" y="53">≈150</text>
+  <path class="d" d="M-50 -8 H50" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="54" y="-6">≈100 piastra</text>
+  <path class="d" d="M-35 -112 H35" marker-start="url(#aw)" marker-end="url(#aw)" style="stroke:var(--warn)"/>
+  <text class="wt" x="-30" y="-115">c-c estensioni ≈60–70 ?</text>
+  <path class="d" d="M-23 120 H23" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="-17" y="117">≈46 int.</text>
+  <path class="d" d="M18 394 H35 M18 458 H35"/>
+  <path class="d" d="M30 394 V458" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="34" y="430">64 (std)</text>
+  <text class="lb" x="-60" y="420">braccio gabbia (abbassato)</text>
+  <text class="lb" x="58" y="180">giunzione 2 metà</text>
+  <text class="lb" x="-150" y="470">tubi Ø22,2 = estensioni esterne (tratteggio)</text>
+</svg>
+<p class="cap">Pianta. Origine Y = bordo anteriore piastra. Scala grafica, non 1:1.</p>
+</div>
+
+<div class="grid">
+<div class="card">
+<h3>Vista laterale (sinistra) · fronte a sinistra</h3>
+<svg viewBox="-115 -50 600 175" aria-label="Laterale">
+  <path class="c" d="M-110 0 H470"/>
+  <path class="h" d="M-20 -11.1 H460 M-20 11.1 H460"/>
+  <text class="lb" x="380" y="22">estensione Ø22,2</text>
+  <!-- tray silhouette (z up = negative y) -->
+  <path class="of" d="M25 -4 L30 -28 L300 -45 Q340 -50 360 -40 L360 -4 Z"/>
+  <path class="of" d="M0 -6 H30 V-20 H0 Z"/>
+  <!-- housing clip -->
+  <path class="o" d="M30 9 H300"/>
+  <!-- rear block -->
+  <path class="o" d="M300 -38 H360"/>
+  <!-- cage boss + arm -->
+  <rect class="of" x="314" y="-60" width="22" height="22"/>
+  <rect class="of" x="320" y="-66" width="150" height="8" rx="4"/>
+  <path class="ph" d="M326 -62 L300 -165"/>
+  <path class="ph" d="M318 -60 L292 -163 M334 -64 L308 -167"/>
+  <text class="lb" x="250" y="-34">blocco + cerniera M5</text>
+  <!-- wahoo -->
+  <rect class="of" x="166" y="-72" width="24" height="44"/>
+  <path class="o" d="M178 -72 V-28"/>
+  <rect class="of" x="161" y="-78" width="34" height="6"/>
+  <rect class="h" x="139" y="-101" width="78" height="23" rx="4"/>
+  <text class="lb" x="140" y="-105">Wahoo BOLT (77×47×22)</text>
+  <!-- front tube -->
+  <path class="of" d="M30 -14 L-30 -14 L-82 -33 L-77 -46 L-25 -28 L30 -28 Z"/>
+  <path class="o" d="M-82 -33 L-97 -38 Q-100 -46 -92 -51 L-77 -46"/>
+  <!-- dims -->
+  <path class="d" d="M300 -45 H390 M300 4 H390"/>
+  <path class="d" d="M385 -45 V4" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="390" y="-18">≈45–50 ?</text>
+  <path class="d" d="M-30 -14 L-60 -14"/>
+  <text class="wt" x="-108" y="-4">angolo punta ≈20° ?</text>
+  <path class="d" d="M178 -78 V-120 M178 8 V-0"/>
+  <text class="wt" x="182" y="-112">altezza post ≈50 ? (regolabile?)</text>
+  <text class="lb" x="300" y="-172">posizione alzata (foto 2)</text>
+</svg>
+<p class="cap">Profilo pareti ricavato da foto 2–3: salgono verso il retro. Angolo/forma tubi anteriori = ipotesi.</p>
+</div>
+
+<div class="card">
+<h3>Vista frontale</h3>
+<svg viewBox="-135 -110 270 140" aria-label="Frontale">
+  <path class="c" d="M0 -105 V25 M-35 -5 V15 M35 -5 V15"/>
+  <path class="o" d="M-120 -4 L120 -4 L118 -48 Q114 -50 110 -44 L75 -28 L50 -20 L-50 -20 L-75 -28 L-110 -44 Q-114 -50 -118 -48 Z"/>
+  <rect class="of" x="-50" y="-20" width="100" height="14"/>
+  <rect class="of" x="-38" y="-42" width="76" height="22"/>
+  <circle class="of" cx="-35" cy="0" r="14"/><circle class="o" cx="-35" cy="0" r="11.1"/>
+  <circle class="of" cx="35" cy="0" r="14"/><circle class="o" cx="35" cy="0" r="11.1"/>
+  <rect class="of" x="-12" y="-72" width="24" height="30"/>
+  <rect class="h" x="-23.5" y="-100" width="47" height="22" rx="4"/>
+  <path class="d" d="M-11.1 18 H11.1" />
+  <path class="d" d="M-46.1 22 H-23.9" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="-48" y="29">Ø22,2 std</text>
+  <path class="d" d="M-21 22 H21" marker-start="url(#a)" marker-end="url(#a)" style="stroke:var(--warn)"/>
+  <text class="wt" x="2" y="29">tubo stampato Ø≈28 ?</text>
+  <text class="lb" x="60" y="-55">parete</text>
+  <text class="lb" x="-34" y="-104">Wahoo</text>
+</svg>
+<p class="cap">Tubi stampati in sezione: Ø ext ≈28, int 22,2 (calzano sopra estensione) – oppure int per inserto shifter. Da chiarire.</p>
+</div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h3>Sezione A–A (metà vassoio) · ingrandita</h3>
+<svg viewBox="-130 -60 260 85" aria-label="Sezione A-A">
+  <circle class="h" cx="-35" cy="0" r="11.1"/><circle class="h" cx="35" cy="0" r="11.1"/>
+  <path class="c" d="M-35 -16 V16 M35 -16 V16 M0 -55 V20"/>
+  <!-- C-clips -->
+  <path class="sh" d="M-43.4 9.9 A13 13 0 1 1 -26.6 9.9"/>
+  <path class="sh" d="M26.6 9.9 A13 13 0 1 1 43.4 9.9"/>
+  <!-- trough -->
+  <path class="sh" d="M-23 -40 V-15 H-4 M4 -15 H23 V-40"/>
+  <!-- wings -->
+  <path class="sh" d="M-48 -4 Q-80 -6 -100 -22 Q-108 -32 -108 -46 Q-108 -50 -104 -50"/>
+  <path class="sh" d="M48 -4 Q80 -6 100 -22 Q108 -32 108 -46 Q108 -50 104 -50"/>
+  <path class="sh" d="M-23 -15 Q-23 -12 -26 -11 M23 -15 Q23 -12 26 -11"/>
+  <path class="d" d="M-23 -48 H23" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="-14" y="-51">≈46</text>
+  <path class="d" d="M-4 14 H4"/>
+  <text class="lb" x="-12" y="21">asola slitta Wahoo ?</text>
+  <text class="wt" x="-128" y="18">clip a scatto? apertura ≈18</text>
+  <text class="dt" x="60" y="-52">parete ≈2,4</text>
+  <text class="lb" x="-122" y="-54">ala concava</text>
+</svg>
+<p class="cap">Ipotesi principale: estensioni sotto, trattenute da clip a C; canale sopra, in mezzo. Foto da sotto necessaria per conferma.</p>
+</div>
+
+<div class="card">
+<h3>Sezione B–B (blocco posteriore) · ingrandita</h3>
+<svg viewBox="-70 -95 140 115" aria-label="Sezione B-B">
+  <path class="c" d="M0 -90 V15"/>
+  <path class="of" d="M-50 -2 Q-40 -2 -38 -10 V-42 H38 V-10 Q40 -2 50 -2 L50 2 L-50 2 Z"/>
+  <rect x="-23" y="-38" width="46" height="34" style="fill:var(--paper);stroke:var(--line);stroke-width:.7"/>
+  <rect class="of" x="-11" y="-64" width="22" height="22"/>
+  <path class="of" d="M-11 -64 H11 V-76 H-11 Z"/>
+  <path class="o" d="M-4 -76 V-64 M4 -76 V-64"/>
+  <path class="c" d="M-16 -70 H16"/>
+  <text class="lb" x="14" y="-80">nocca + vite M5</text>
+  <path class="d" d="M-23 -30 H23" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="-17" y="-24">≈46 × 34</text>
+  <path class="d" d="M-38 10 H38" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="-12" y="17">≈76</text>
+  <text class="lb" x="-66" y="-50">tunnel gel</text>
+</svg>
+<p class="cap">Da foto 2: tunnel rettangolare cavo, raccordi svasati alla base, 3–4 perimetri + riempimento.</p>
+</div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h3>Dettaglio C – colonnina Wahoo</h3>
+<svg viewBox="-60 -90 120 110" aria-label="Wahoo">
+  <path class="c" d="M0 -88 V18"/>
+  <rect class="of" x="-12.5" y="-60" width="25" height="60"/>
+  <path class="o" d="M-2 -60 V0 M2 -60 V0"/>
+  <rect class="of" x="-16.5" y="-66" width="33" height="6"/>
+  <path class="o" d="M-16.5 -66 H16.5"/>
+  <path class="of" d="M-14 0 H14 V4 H4 V10 H-4 V4 H-14 Z"/>
+  <text class="lb" x="18" y="-62">puck Wahoo Ø≈33</text>
+  <text class="lb" x="18" y="-30">Ø≈25, fessura</text>
+  <text class="wt" x="16" y="9">piede a T in asola?</text>
+  <path class="d" d="M-12.5 -75 H12.5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="-6" y="-78">25</text>
+</svg>
+</div>
+<div class="card">
+<h3>Dettaglio D – braccio portaborraccia</h3>
+<svg viewBox="-20 -40 190 70" aria-label="Braccio">
+  <path class="of" d="M0 -12 H150 A12 12 0 0 1 150 12 H0 Z"/>
+  <circle class="of" cx="0" cy="0" r="12"/>
+  <circle class="o" cx="0" cy="0" r="2.7"/>
+  <circle class="o" cx="68" cy="0" r="2.7"/><circle class="o" cx="132" cy="0" r="2.7"/>
+  <path class="d" d="M68 -14 V-30 M132 -14 V-30"/>
+  <path class="d" d="M68 -26 H132" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="88" y="-29">64 std</text>
+  <text class="lb" x="-14" y="24">perno cerniera M5</text>
+  <text class="lb" x="60" y="24">2× M5 gabbia</text>
+  <path class="d" d="M168 -12 V12" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="dt" x="150" y="28">≈24</text>
+</svg>
+</div>
+</div>
+
+<h2>3 · Stima quote</h2>
+<div class="card">
+<table>
+<tr><th>Quota</th><th>Valore</th><th>Fonte stima</th><th>Conf.</th></tr>
+<tr><td>Diametro estensioni</td><td>22,2</td><td>standard di settore</td><td><span class="tag hi">alta</span></td></tr>
+<tr><td>Interasse fori gabbia</td><td>64</td><td>standard ISO portaborraccia</td><td><span class="tag hi">alta</span></td></tr>
+<tr><td>Larghezza Wahoo BOLT (riferimento scala)</td><td>≈47</td><td>scheda prodotto</td><td><span class="tag hi">alta</span></td></tr>
+<tr><td>Lunghezza vassoio (senza tubi/braccio)</td><td>330–370</td><td>proporzione su Wahoo, foto 1/5</td><td><span class="tag md">media</span></td></tr>
+<tr><td>Larghezza posteriore</td><td>210–240</td><td>idem; prospettiva gonfia retro</td><td><span class="tag md">media</span></td></tr>
+<tr><td>Larghezza piastra frontale</td><td>90–105</td><td>foto 4/5</td><td><span class="tag md">media</span></td></tr>
+<tr><td>Canale interno</td><td>44–54</td><td>poco più largo del Wahoo (foto 1)</td><td><span class="tag md">media</span></td></tr>
+<tr><td>Interasse estensioni</td><td>55–75</td><td>foto 5 — molto incerto</td><td><span class="tag lo">bassa</span></td></tr>
+<tr><td>Altezza pareti</td><td>35–50</td><td>foto 2/3</td><td><span class="tag lo">bassa</span></td></tr>
+<tr><td>Spessore pareti</td><td>2–3</td><td>sezione foto 2 (≈5–6 perimetri 0,45)</td><td><span class="tag md">media</span></td></tr>
+<tr><td>Angolo punte tubi</td><td>15–25°</td><td>foto 4</td><td><span class="tag lo">bassa</span></td></tr>
+</table>
+</div>
+
+<h2>4 · Ricerca online</h2>
+<div class="card">
+<ul>
+<li>Nessun file pubblico identico trovato (Printables/MakerWorld/Cults). Più vicino commerciale: <a href="https://swissside.com/products/aero-cockpit">Swiss Side AERO Cockpit</a> (BTA + supporto Garmin/Wahoo integrati, 633 g) — <a href="https://bikerumor.com/swiss-side-aero-cockpit-mixes-comfort-usability-speed-for-tt-tri-racers/">review Bikerumor</a>.</li>
+<li>Ponte stampato tra estensioni per Garmin/luci, fissato a fascette su 22,2: <a href="https://www.makerworld.com/en/models/2454363">MakerWorld 2454363</a>; supporto GoPro tra estensioni: <a href="https://makerworld.com/models/2823059">MakerWorld 2823059</a>.</li>
+<li>22,2 mm = standard estensioni: <a href="https://www.giant-bicycles.com/us/alloy-s-bend-aerobar-extensions">Giant S-bend</a>, <a href="https://www.canyon.com/en-es/canyon-speedmax-tri-extensions-lazy-j-bend/140512.html">Canyon Lazy-J</a> (343 mm, rise 40, 17,5°).</li>
+<li>Shimano SW-R9160: montaggio interno Ø19,0–22,5 / esterno 22,2–24,0 — <a href="https://veloplus.ee/en/di2-shifters-for-tttri-bars-shimano-dura-ace-sw-r9160-51551">Veloplus</a>. → Tubo stampato con ID ≈20–22 accetta l’espansore dello shifter.</li>
+<li>Shifter Di2 stampati su raggio 22,2: <a href="https://andrewsuzuki.com/custom-3d-printed-di2-shifters">Andrew Suzuki</a>; estensioni con segmenti stampati: <a href="https://51-speedshop.com/blogs/news/which-51-speedshop-extension-is-right-for-you">51 Speedshop</a>.</li>
+<li>Profile Design HSF BTA: riferimento interasse estensioni 80–120 c-c per BTA standard — <a href="https://www.treefortbikes.com/Profile-Design-HSF-BTA-Garmin-Mount-Water-Bottle">Treefort</a>. Il nostro sembra più stretto → verificare.</li>
+<li>Puck Wahoo quarter-turn ≈42,5×33,5×5 — <a href="https://bikebug.com/wahoo-quarter-turn-adapter-puck-for-garmin-mounts.html">Bikebug</a>.</li>
+</ul>
+</div>
+
+<h2>5 · Scomposizione parti proposta</h2>
+<div class="card">
+<table>
+<tr><th>#</th><th>Parte</th><th>Note stampa</th></tr>
+<tr><td>P1</td><td>Vassoio anteriore (piastra, ponte, metà canale)</td><td>~180 mm, faccia superiore in alto, supporti sotto clip</td></tr>
+<tr><td>P2</td><td>Vassoio posteriore (metà canale, blocco BTA, asole)</td><td>~180 mm</td></tr>
+<tr><td>P3 ×2</td><td>Tubi punta (sx/dx, specchiati)</td><td>verticali → layer line come foto 4</td></tr>
+<tr><td>P4</td><td>Colonnina Wahoo + puck</td><td>puck commerciale o stampato</td></tr>
+<tr><td>P5</td><td>Braccio gabbia + nocca</td><td>M5 + dado</td></tr>
+<tr><td>—</td><td>Minuteria</td><td>M5 inox, M3 puck, eventuali inserti a caldo</td></tr>
+</table>
+</div>
+
+<h2>6 · Domande aperte</h2>
+<div class="card">
+<ol class="q">
+<li><b>Obiettivo</b>: “ricaricare” = ricreare il modello 3D? Copia fedele o versione migliorata/parametrica? Uso personale?</li>
+<li><b>Bici + estensioni</b>: modello bici/base bar, estensioni (dritte/S/J), lunghezza, <b>interasse c-c</b>, distanza dal poggiabraccia. Hai il pezzo fisico o solo foto?</li>
+<li><b>Aggancio</b>: estensioni sotto il vassoio con clip a scatto, o passano dentro tubi chiusi? Serve <b>foto da sotto</b> + foto laterale a 90°.</li>
+<li><b>Tubi in punta</b>: prolunghe stampate che calzano sulle estensioni, o le estensioni escono dentro di loro? Shifter infilato nel tubo stampato?</li>
+<li><b>Wahoo</b>: modello (BOLT v2?), altezza e posizione fissa o regolabile lungo il canale?</li>
+<li><b>Portaborraccia</b>: cerniera da mantenere? Angolo tipico? Borraccia/gabbia usata?</li>
+<li><b>Asole quadrate posteriori</b>: a cosa servono?</li>
+<li><b>Stampa</b>: stampante e piatto, materiale (PETG / ASA / PA-CF).</li>
+<li><b>Software/output</b>: Fusion/Onshape/FreeCAD, CadQuery parametrico, o Blender? Formato STEP / STL / 3MF.</li>
+</ol>
+</div>
+</main>
+</body>
+</html>
